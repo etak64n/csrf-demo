@@ -11,18 +11,21 @@ CSRF（Cross-Site Request Forgery）を安全に体験・学習できる Docker 
 | victim-app | Next.js (App Router) | `localhost:3000` | 被害者サイト（銀行アプリ） |
 | attacker-site | nginx | `localhost:8080` | 攻撃者サイト（罠ページ） |
 
-```
-┌──────────────────┐        ┌──────────────────┐
-│   攻撃者サイト    │        │   被害者サイト    │
-│  localhost:8080   │        │  localhost:3000   │
-│                  │        │                  │
-│  隠しフォーム ────POST───→ /api/transfer     │
-│  (to=attacker     │  +Cookie│  (CSRF トークン  │
-│   amount=50000)   │        │   検証なし！)     │
-└──────────────────┘        └──────────────────┘
-         ↑                          ↑
-         │    同じブラウザで両方開く   │
-         └──────── ユーザー ────────┘
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant Attacker as 攻撃者サイト<br/>localhost:8080
+    participant Victim as 被害者サイト<br/>localhost:3000
+
+    User->>Victim: ログイン
+    Victim-->>User: セッション Cookie 発行
+    User->>Attacker: 罠ページにアクセス
+    Attacker->>User: 隠しフォームを含むページを表示
+    User->>Attacker: 「今すぐ受け取る」をクリック
+    Attacker->>Victim: POST /api/transfer (to=attacker, amount=50000)<br/>※ブラウザが Cookie を自動付与
+    Victim-->>Victim: CSRF トークン検証なし → 送金実行
+    User->>Victim: ダッシュボードを確認
+    Victim-->>User: 残高が ¥50,000 減っている！
 ```
 
 ## 使い方
