@@ -1,6 +1,6 @@
 services:
-  victim-app:
-    build: ./victim-app
+  bank-app:
+    build: ./bank-app
     ports:
       - "3000:3000"
 
