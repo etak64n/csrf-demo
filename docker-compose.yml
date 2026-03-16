@@ -1,0 +1,10 @@
+services:
+  victim-app:
+    build: ./victim-app
+    ports:
+      - "3000:3000"
+
+  attacker-site:
+    build: ./attacker-site
+    ports:
+      - "8080:80"
